@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlotaControl</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;600;700;900&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #151820;
+    --card: #1c2030;
+    --border: #2a3050;
+    --accent: #00e5a0;
+    --accent2: #ff6b35;
+    --warn: #ffd166;
+    --danger: #ef4444;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --paid: #00e5a0;
+    --unpaid: #ef4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    padding: 0 0 80px;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  header h1 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.3rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+
+  #fecha-hoy {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .resumen {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .resumen-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .resumen-card .valor {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .resumen-card .etiqueta {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .resumen-card.alerta .valor { color: var(--danger); }
+  .resumen-card.pendiente .valor { color: var(--warn); }
+
+  .seccion-titulo {
+    padding: 16px 16px 8px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .conductores {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .conductor-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    transition: border-color 0.2s;
+  }
+
+  .conductor-card.alerta-conductor {
+    border-color: var(--danger);
+    box-shadow: 0 0 12px rgba(239,68,68,0.15);
+  }
+
+  .conductor-card.descanso {
+    opacity: 0.55;
+    border-style: dashed;
+  }
+
+  .conductor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .conductor-nombre {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .badge {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-descanso { background: rgba(107,114,128,0.2); color: var(--muted); }
+  .badge-alerta { background: rgba(239,68,68,0.15); color: var(--danger); }
+  .badge-ok { background: rgba(0,229,160,0.12); color: var(--accent); }
+
+  .dias-pago {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .dia-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-family: 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .dia-btn.pagado {
+    background: rgba(0,229,160,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .dia-btn.hoy {
+    border-color: var(--warn);
+    color: var(--warn);
+  }
+
+  .dia-btn.pagado.hoy {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .dia-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--accent);
+  }
+
+  .dia-btn:disabled { cursor: default; }
+
+  .conductor-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .monto-semana {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+  }
+
+  .monto-semana span { color: var(--accent); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-overlay.activo { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal h3 {
+    font-size: 1rem;
+    margin-bottom: 16px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .modal-opciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .modal-btn {
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .modal-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .modal-btn .icono { font-size: 1.4rem; }
+
+  .modal-cancelar {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .modal-cancelar:hover { color: var(--text); }
+
+  /* Semana nav */
+  .semana-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .semana-nav button {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  .semana-nav button:hover { border-color: var(--accent); }
+
+  #semana-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    min-width: 160px;
+    text-align: center;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+  }
+
+  /* Historial */
+  .historial-section {
+    padding: 0 16px;
+    margin-top: 8px;
+  }
+
+  .historial-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .historial-item .hi-nombre { font-weight: 700; }
+  .historial-item .hi-metodo { color: var(--muted); font-size: 0.7rem; }
+  .historial-item .hi-monto {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent);
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 57px;
+    z-index: 99;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+
+  .tab.activo {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.activo { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ FLOTACONTROL</h1>
+  <span id="fecha-hoy"></span>
+</header>
+
+<div class="tabs">
+  <div class="tab activo" onclick="cambiarTab('pagos')">Pagos</div>
+  <div class="tab" onclick="cambiarTab('historial')">Historial</div>
+</div>
+
+<!-- TAB PAGOS -->
+<div id="tab-pagos" class="tab-content activo">
+
+  <div class="resumen">
+    <div class="resumen-card">
+      <div class="valor" id="res-cobrado">$0</div>
+      <div class="etiqueta">Cobrado hoy</div>
+    </div>
+    <div class="resumen-card pendiente">
+      <div class="valor" id="res-pendiente">$0</div>
+      <div class="etiqueta">Pendiente</div>
+    </div>
+    <div class="resumen-card alerta">
+      <div class="valor" id="res-alertas">0</div>
+      <div class="etiqueta">Alertas</div>
+    </div>
+  </div>
+
+  <div class="semana-nav">
+    <button onclick="cambiarSemana(-1)">◀</button>
+    <span id="semana-label">...</span>
+    <button onclick="cambiarSemana(1)">▶</button>
+  </div>
+
+  <div class="seccion-titulo">Conductores</div>
+  <div class="conductores" id="lista-conductores">
+    <div class="loading">CARGANDO...</div>
+  </div>
+</div>
+
+<!-- TAB HISTORIAL -->
+<div id="tab-historial" class="tab-content">
+  <div class="seccion-titulo">Últimos pagos registrados</div>
+  <div class="historial-section" id="lista-historial">
+    <div class="loading">CARGANDO...</div>
+  </div>
+</div>
+
+<!-- Modal pago -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-titulo">Registrar pago</h3>
+    <div class="modal-opciones">
+      <button class="modal-btn" onclick="registrarPago('efectivo')">
+        <span class="icono">💵</span>
+        Efectivo
+      </button>
+      <button class="modal-btn" onclick="registrarPago('transferencia')">
+        <span class="icono">📲</span>
+        Transferencia
+      </button>
+    </div>
+    <button class="modal-cancelar" onclick="cerrarModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyARQ28vuGiQ-uI3jTiQYWxRDk",
+    authDomain: "flotacontrol-fb162.firebaseapp.com",
+    projectId: "flotacontrol-fb162",
+    storageBucket: "flotacontrol-fb162.appspot.com",
+    messagingSenderId: "753046884973",
+    appId: "1:753046884973:web:a53a1a9d7e51"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const TARIFA = 35000;
+
+  const CONDUCTORES = [
+    { nombre: "Emir",     descanso: 1 }, // lunes
+    { nombre: "Abraham",  descanso: 4 }, // jueves
+    { nombre: "Luis",     descanso: 5 }, // viernes
+    { nombre: "Daniel",   descanso: 2 }, // martes
+    { nombre: "Junior",   descanso: 4 }, // jueves
+    { nombre: "Eduardo",  descanso: 2 }, // martes
+    { nombre: "Jackson",  descanso: 4 }, // jueves
+    { nombre: "Wilfrido", descanso: 5 }, // viernes
+  ];
+
+  const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+  // Estado
+  let pagos = {}; // { "Emir_2025-01-15": { metodo, ts } }
+  let semanaOffset = 0;
+  let modalDia = null;
+  let modalConductor = null;
+
+  // Exponer funciones globales
+  window.registrarPago = registrarPago;
+  window.cerrarModal = cerrarModal;
+  window.cambiarSemana = cambiarSemana;
+  window.cambiarTab = cambiarTab;
+
+  function getLunesDeSemana(offset = 0) {
+    const hoy = new Date();
+    const dia = hoy.getDay(); // 0=dom
+    const diffLunes = dia === 0 ? -6 : 1 - dia;
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + diffLunes + offset * 7);
+    lunes.setHours(0,0,0,0);
+    return lunes;
+  }
+
+  function formatFecha(d) {
+    return d.toISOString().split('T')[0];
+  }
+
+  function esHoy(fechaStr) {
+    return fechaStr === formatFecha(new Date());
+  }
+
+  function getDiasSemana(lunes) {
+    return Array.from({length:7}, (_,i) => {
+      const d = new Date(lunes);
+      d.setDate(lunes.getDate() + i);
+      return d;
+    });
+  }
+
+  async function cargarPagosSemana() {
+    const lunes = getLunesDeSemana(semanaOffset);
+    const dias = getDiasSemana(lunes);
+    const keys = [];
+    CONDUCTORES.forEach(c => {
+      dias.forEach(d => {
+        keys.push(`${c.nombre}_${formatFecha(d)}`);
+      });
+    });
+
+    pagos = {};
+    // Cargar en lotes
+    for (const key of keys) {
+      const snap = await getDoc(doc(db, "pagos", key));
+      if (snap.exists()) pagos[key] = snap.data();
+    }
+  }
+
+  async function cargarHistorial() {
+    const lista = document.getElementById('lista-historial');
+    lista.innerHTML = '<div class="loading">CARGANDO...</div>';
+    try {
+      const q = query(collection(db, "pagos"), orderBy("ts", "desc"), limit(30));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        lista.innerHTML = '<div class="loading">Sin registros aún</div>';
+        return;
+      }
+      lista.innerHTML = '';
+      snap.forEach(d => {
+        const data = d.data();
+        const [nombre, fecha] = d.id.split('_');
+        const item = document.createElement('div');
+        item.className = 'historial-item';
+        item.innerHTML = `
+          <div>
+            <div class="hi-nombre">${nombre}</div>
+            <div class="hi-metodo">${fecha} · ${data.metodo}</div>
+          </div>
+          <div class="hi-monto">$${TARIFA.toLocaleString('es-CO')}</div>
+        `;
+        lista.appendChild(item);
+      });
+    } catch(e) {
+      lista.innerHTML = '<div class="loading">Error cargando historial</div>';
+    }
+  }
+
+  function renderSemana() {
+    const lunes = getLunesDeSemana(semanaOffset);
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    const opts = { day:'numeric', month:'short' };
+    document.getElementById('semana-label').textContent =
+      `${lunes.toLocaleDateString('es-CO', opts)} – ${domingo.toLocaleDateString('es-CO', opts)}`;
+
+    const dias = getDiasSemana(lunes);
+    const hoyFecha = formatFecha(new Date());
+    const hoyDia = new Date().getDay();
+
+    let cobradoHoy = 0;
+    let pendienteHoy = 0;
+    let alertas = 0;
+
+    const lista = document.getElementById('lista-conductores');
+    lista.innerHTML = '';
+
+    CONDUCTORES.forEach(conductor => {
+      const descansaHoy = conductor.descanso === hoyDia;
+      const pagosPorDia = {};
+      let pagadosSemana = 0;
+
+      dias.forEach(d => {
+        const f = formatFecha(d);
+        const key = `${conductor.nombre}_${f}`;
+        pagosPorDia[f] = pagos[key] || null;
+        if (pagos[key]) pagadosSemana++;
+      });
+
+      // Calcular alerta: si el día de hoy no está en descanso, y no pagó hoy ni ayer
+      const ayerDate = new Date();
+      ayerDate.setDate(ayerDate.getDate() - 1);
+      const ayerFecha = formatFecha(ayerDate);
+      const hoyKey = `${conductor.nombre}_${hoyFecha}`;
+      const ayerKey = `${conductor.nombre}_${ayerFecha}`;
+      const pagadoHoy = !!pagos[hoyKey];
+      const tieneAlerta = !descansaHoy && !pagadoHoy && semanaOffset === 0;
+
+      if (pagadoHoy) cobradoHoy += TARIFA;
+      else if (!descansaHoy && semanaOffset === 0) pendienteHoy += TARIFA;
+      if (tieneAlerta) alertas++;
+
+      const card = document.createElement('div');
+      card.className = `conductor-card${tieneAlerta ? ' alerta-conductor' : ''}${descansaHoy && semanaOffset === 0 ? ' descanso' : ''}`;
+
+      let badgeHTML = '';
+      if (descansaHoy && semanaOffset === 0) badgeHTML = '<span class="badge badge-descanso">Descanso</span>';
+      else if (tieneAlerta) badgeHTML = '<span class="badge badge-alerta">⚠ Sin pagar</span>';
+      else if (pagadoHoy) badgeHTML = '<span class="badge badge-ok">✓ Al día</span>';
+
+      let diasHTML = '';
+      dias.forEach((d, i) => {
+        const f = formatFecha(d);
+        const esDesc = conductor.descanso === d.getDay();
+        const pago = pagosPorDia[f];
+        const esHoyDia = f === hoyFecha;
+        let cls = 'dia-btn';
+        if (pago) cls += ' pagado';
+        if (esHoyDia) cls += ' hoy';
+        let label = DIAS[d.getDay()];
+        let title = esDesc ? 'Descanso' : (pago ? `Pagado (${pago.metodo})` : 'Sin pagar');
+        diasHTML += `<button class="${cls}" title="${title}"
+          ${esDesc ? 'disabled' : ''}
+          onclick="window._abrirModal('${conductor.nombre}','${f}','${esDesc}','${!!pago}')">
+          ${label}${esHoyDia ? '<br><small>HOY</small>' : ''}
+        </button>`;
+      });
+
+      const montoSemana = pagadosSemana * TARIFA;
+      card.innerHTML = `
+        <div class="conductor-header">
+          <span class="conductor-nombre">${conductor.nombre}</span>
+          ${badgeHTML}
+        </div>
+        <div class="dias-pago">${diasHTML}</div>
+        <div class="conductor-footer">
+          <span class="monto-semana">Semana: <span>$${montoSemana.toLocaleString('es-CO')}</span></span>
+          <span>${pagadosSemana}/6 días</span>
+        </div>
+      `;
+      lista.appendChild(card);
+    });
+
+    document.getElementById('res-cobrado').textContent = '$' + cobradoHoy.toLocaleString('es-CO');
+    document.getElementById('res-pendiente').textContent = '$' + pendienteHoy.toLocaleString('es-CO');
+    document.getElementById('res-alertas').textContent = alertas;
+  }
+
+  window._abrirModal = function(nombre, fecha, esDescanso, yaPago) {
+    if (esDescanso === 'true') return;
+    modalConductor = nombre;
+    modalDia = fecha;
+    document.getElementById('modal-titulo').textContent =
+      yaPago === 'true'
+        ? `✏ ${nombre} · ${fecha}`
+        : `💰 Pago de ${nombre} · ${fecha}`;
+    document.getElementById('modal-overlay').classList.add('activo');
+  };
+
+  async function registrarPago(metodo) {
+    if (!modalConductor || !modalDia) return;
+    const key = `${modalConductor}_${modalDia}`;
+    const ya = pagos[key];
+    if (ya) {
+      // Desmarcar
+      await deleteDoc(doc(db, "pagos", key));
+      delete pagos[key];
+    } else {
+      const data = { metodo, ts: Date.now(), conductor: modalConductor, fecha: modalDia };
+      await setDoc(doc(db, "pagos", key), data);
+      pagos[key] = data;
+    }
+    cerrarModal();
+    renderSemana();
+  }
+
+  function cerrarModal() {
+    document.getElementById('modal-overlay').classList.remove('activo');
+    modalConductor = null;
+    modalDia = null;
+  }
+
+  async function cambiarSemana(dir) {
+    semanaOffset += dir;
+    document.getElementById('lista-conductores').innerHTML = '<div class="loading">CARGANDO...</div>';
+    await cargarPagosSemana();
+    renderSemana();
+  }
+
+  function cambiarTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('activo'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('activo'));
+    document.querySelector(`[onclick="cambiarTab('${tab}')"]`).classList.add('activo');
+    document.getElementById(`tab-${tab}`).classList.add('activo');
+    if (tab === 'historial') cargarHistorial();
+  }
+
+  // Fecha header
+  const hoy = new Date();
+  document.getElementById('fecha-hoy').textContent =
+    hoy.toLocaleDateString('es-CO', { weekday:'short', day:'numeric', month:'short' }).toUpperCase();
+
+  // Init
+  (async () => {
+    await cargarPagosSemana();
+    renderSemana();
+  })();
+</script>
+</body>
+</html>
